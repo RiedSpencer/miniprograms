@@ -19,10 +19,10 @@ class Login{
      *
      * create a pdo
      */
-    public function __construct($host,$dbname,$tablename,$pass)
+    public function __construct($host,$dbname,$username,$pass)
     {
         $dsn = "mysql:host=$host;dbname=$dbname";
-        $this->pdo = new \PDO($dsn,$tablename,$pass);
+        $this->pdo = new \PDO($dsn,$username,$pass);
     }
 
     /**
