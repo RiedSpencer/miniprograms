@@ -1,2 +1,2 @@
 # miniprograms
-quick install usually api interface about mini programs
+quick install usually login api interface about mini programs
