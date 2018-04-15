@@ -2,7 +2,7 @@
     "name": "miniprogram/login",
     "description": "quick login about wx mini programs",
     "keywords": ["mini programs","login"],
-    "type": "composer-plugin",
+    "type": "library",
     "license": "MIT",
     "authors": [
         {
