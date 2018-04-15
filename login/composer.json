@@ -1,0 +1,22 @@
+{
+    "name": "miniprogram/login",
+    "description": "quick login about wx mini programs",
+    "keywords": ["mini programs","login"],
+    "type": "composer-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "spencer Rao",
+            "email": "641315243raoye@sina.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Login\\": "src/Login"
+        }
+    }
+}
