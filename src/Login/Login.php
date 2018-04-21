@@ -8,9 +8,9 @@
  * function:quick login interface about wx mini programs
  */
 
-namespace login;
+namespace Login;
 
-use login\userTable;
+use Login\userTable;
 
 class Login{
 

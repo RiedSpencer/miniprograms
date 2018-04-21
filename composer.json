@@ -16,7 +16,7 @@
     },
     "autoload": {
         "psr-4": {
-            "login\\": "src/Login"
+            "Login\\": "src/Login"
         }
     }
 }

@@ -8,7 +8,7 @@
  * function:quick login interface about wx mini programs
  */
 
-namespace login;
+namespace Login;
 
 class userTable{
 
