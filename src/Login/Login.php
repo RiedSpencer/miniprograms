@@ -10,98 +10,134 @@
 
 namespace login;
 
+use login\userTable;
+
 class Login{
 
-    private $pdo;
+    private $param;
 
-    /**
-     * Login constructor.
-     *
-     * create a pdo
-     */
-    public function __construct($host,$dbname,$username,$pass)
+    public function __construct($param)
     {
-        $dsn = "mysql:host=$host;dbname=$dbname";
-        $this->pdo = new \PDO($dsn,$username,$pass);
+         $this->param = $param;
     }
 
     /**
-     * @param $tablename
-     * @return array
-     * @funct insert or update userinfo
+     * @param $appid
+     * @param $appsecret
+     * @return mixed|void
+     * @throws \Exception
+     * @function  获取用户的openid
      */
-    public function insert($tablename){
-        $param = (isset($_GET))?$_GET:(isset($_POST)?$_POST:[]);
-
-        $uid = $this->judge($tablename,$param);
-        $rowcount = 0;
-        $pdo = $this->pdo;
-        $condition = $this->pack($param);
-        if(!$uid){
-            //进行insert操作
-            $sql = 'INSERT INTO '.$tablename.' SET '.$condition;
-            $sth = $pdo->prepare($sql);
-            $sth = $this->bind($sth,$param);
-            $sth->execute();
-            $uid = $pdo->lastInsertId();
-            $rowcount = $sth->rowCount();
+    public function getUserinfo($appid='',$appsecret='')
+    {
+       //得到用户的code
+        $code = $_REQUEST['code']??'';
+        if(!$code){
+            return $this->returnError("登录失败，缺少code参数。");
         }
-        return ['affected'=>$rowcount,'uid'=>$uid];
-    }
 
-    /**
-     * @param $tablename
-     * @param $param
-     * @return int
-     * @funct judge the user exist
-     */
-    public function judge($tablename,$param)
-    {
-        //得到数据表字段
-        $where = $this->pack($param,'where');
-        $pdo = $this->pdo;
-        $sth = $pdo->prepare('SELECT uid from '.$tablename.' where '.$where);
-        $sth = $this->bind($sth,$param);
-        $sth->execute();
-        $res = $sth->fetch(\PDO::FETCH_ASSOC);
-        return $res['uid'];
-    }
-
-
-    /**
-     * @param $param
-     * @return string
-     * @funct package the param
-     */
-    public function pack($param,$type='')
-    {
-        $p = array_flip($param);
-        $where = '';
-
-        if(count($p))
+        $appid = ($appid)?:($this->param['config']['appid']??'');
+        $appsecret = ($appsecret)?:($this->param['config']['appsecret']??'');
+        if(!$appid || !$appsecret)
         {
-            $state = ($type == 'where')?implode(' = ? AND ',$p):implode(' = ? , ',$p);
-            $where = $state." = ?";
+            return $this->returnError("缺少参数appid或appsecret");
         }
-        return $where;
+
+        //微信接口请求获取个人信息
+        $url = "https://api.weixin.qq.com/sns/jscode2session?appid=$appid&secret=$appsecret&js_code=$code&grant_type=authorization_code";
+        $return = json_decode($this->curlApi($url),true);
+        if(!isset($return['openid']))
+        {
+            return $this->returnError($return['errmsg']);
+        }
+        return $return;
+    }
+
+    //保存用户的信息
+    public function saveUserinfo()
+    {
+
+        $conninfo = $this->param['conn']??[];//连接数据库信息
+        $tableinfo = $this->param['tableinfo']??[];//表格内容
+        $configinfo = $this->param['config']??[];//配置信息
+
+        $getuser = $this->getUserinfo();
+
+        //获取用户的openi
+
+        $openid = $getuser['openid']??'';
+        if(!$openid)
+            ob_clean();
+        if(!count($conninfo) || !count($tableinfo))
+            return $this->returnSuccess();
+//        存在数据库信息，进行数据的保存、
+        $user = new userTable($conninfo['host'],$conninfo['dbname'],$conninfo['username'],$conninfo['pass']);
+//        因为openid的唯一性，所以先判断是否存在该用户
+        $judge = '';
+        if($openid)
+            $judge = ['openid'=>$openid];
+        $uid = ($judge)?$user->judge($tableinfo['tablename'],$judge):'';
+        if(!$uid)
+        {
+//            进行用户的新增
+            $param = $tableinfo['param'];
+            $param['openid'] = $openid;
+            $new = $user->insert($tableinfo['tablename'],$param);
+            $uid = $new['uid'];
+        }
+        $info = $user->select($tableinfo['tablename'],$uid);
+        return $this->returnSuccess($info);
     }
 
     /**
-     * @param $sth
-     * @param $param
+     * @param $url
+     * @param $xml
      * @return mixed
-     * @funct bind the value
+     * @throws \Exception
+     * funct：接口请求
      */
-    public function bind($sth,$param)
+    public function curlApi($url, $jsoncont=[],$type='')
     {
-        $i = 1;
-        foreach ($param as $k => $v)
-        {
-            $sth->bindValue($i,$v);
-            ++$i;
+        $ch = curl_init();
+        //设置超时
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);//严格校验
+        //设置header
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        //要求结果为字符串且输出到屏幕上
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        //post提交方式
+        if($type=='post'){
+            curl_setopt($ch, CURLOPT_POST, true);
+            //post 提交参数
+            curl_setopt($ch,CURLOPT_POSTFIELDS,$jsoncont);
         }
-        return $sth;
+        //运行curl
+        $data = curl_exec($ch);
+        //返回结果
+        if ($data) {
+            curl_close($ch);
+            return $data;
+        } else {
+            $error = curl_errno($ch);
+            curl_close($ch);
+            throw  new \Exception('curl出错');
+        }
     }
 
+
+    //返回成功
+    public function returnSuccess($data='')
+    {
+        return json_encode(['code'=>200,'data'=>$data]);
+    }
+
+    //返回失败
+    public function returnError($data='',$code= 201)
+    {
+        return json_encode(['code'=>$code,'data'=>$data]);
+    }
 
 }
