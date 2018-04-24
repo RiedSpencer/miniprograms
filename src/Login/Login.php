@@ -31,7 +31,7 @@ class Login{
     public function getUserinfo($appid='',$appsecret='')
     {
        //得到用户的code
-        $code = $_REQUEST['code']??'';
+        $code = $this->param['config']['code']??'';
         if(!$code){
             return $this->returnError("登录失败，缺少code参数。");
         }
