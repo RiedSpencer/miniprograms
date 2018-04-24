@@ -81,6 +81,8 @@ class userTable{
      */
     public function pack($param,$type='')
     {
+        //为空判断
+        $param = $this->delNull($param);
         $p = array_flip($param);
         $where = '';
 
@@ -107,6 +109,22 @@ class userTable{
             ++$i;
         }
         return $sth;
+    }
+
+
+    /**
+     * @param $param
+     * @return array
+     */
+    public function delNull($param)
+    {
+        $return = [];
+        foreach($param as $k => $v)
+        {
+            if($v)
+                $return[$k] = $v;
+        }
+        return $return;
     }
 
 
