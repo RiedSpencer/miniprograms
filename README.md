@@ -27,7 +27,8 @@ $param['tableinfo'] = [
 
 $param['config'] = [
 	'appid'=>'',//小程序appid
-	'appsecret'=>''//小程序app密钥
+	'appsecret'=>''//小程序app密钥,
+	'code'=>''//用户登录code
 ];
 
 5、construct
